@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SituacaoEquipamento {
+  EM_USO
+  PARADO
+  EMPRESTADO
+  EM_MANUTENCAO
+  BAIXADO
+}
+
+enum CondicaoEquipamento {
+  NOVO
+  BOM
+  REGULAR
+  PRECISA_MANUTENCAO
+  AVARIADO
+  INSERVIVEL
+}
+
+enum SituacaoReserva {
+  AGENDADA
+  EM_ANDAMENTO
+  DEVOLVIDA
+  ATRASADA
+  CANCELADA
+}
+
+enum TipoMovimentacao {
+  CADASTRO
+  SAIDA
+  DEVOLUCAO
+  TRANSFERENCIA
+  ENVIO_MANUTENCAO
+  RETORNO_MANUTENCAO
+  BAIXA
+}
+
+enum PapelUsuario {
+  ADMIN
+  OPERADOR
+}
+
+model Usuario {
+  id        String       @id @default(uuid()) @db.Uuid
+  nome      String
+  email     String       @unique
+  senhaHash String       @map("senha_hash")
+  papel     PapelUsuario
+  ativo     Boolean      @default(true)
+  criadoEm  DateTime     @default(now()) @map("criado_em") @db.Timestamptz
+
+  reservas      Reserva[]
+  movimentacoes Movimentacao[]
+
+  @@map("usuarios")
+}
+
+model Pessoa {
+  id        String   @id @default(uuid()) @db.Uuid
+  nome      String
+  matricula String?
+  setor     String?
+  email     String?
+  telefone  String?
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now()) @map("criado_em") @db.Timestamptz
+
+  equipamentos  Equipamento[]
+  reservas      Reserva[]
+  movimentacoes Movimentacao[]
+
+  @@map("pessoas")
+}
+
+model Categoria {
+  id        String   @id @default(uuid()) @db.Uuid
+  prefixo   String   @unique @db.Char(3)
+  nome      String   @unique
+  descricao String?
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now()) @map("criado_em") @db.Timestamptz
+
+  equipamentos Equipamento[]
+
+  @@map("categorias")
+}
+
+model Local {
+  id      String  @id @default(uuid()) @db.Uuid
+  codigo  String  @unique
+  nome    String
+  unidade String?
+  tipo    String
+  ativo   Boolean @default(true)
+
+  equipamentosPadrao   Equipamento[]  @relation("LocalPadrao")
+  equipamentosAtuais   Equipamento[]  @relation("LocalAtual")
+  reservas             Reserva[]
+  movimentacoesOrigem  Movimentacao[] @relation("LocalOrigem")
+  movimentacoesDestino Movimentacao[] @relation("LocalDestino")
+
+  @@map("locais")
+}
+
+model Equipamento {
+  id            String              @id @default(uuid()) @db.Uuid
+  tombo         String              @unique
+  tomboSenac    String?             @unique @map("tombo_senac")
+  nome          String
+  categoriaId   String              @map("categoria_id") @db.Uuid
+  marca         String?
+  modelo        String?
+  numeroSerie   String?             @map("numero_serie")
+  situacao      SituacaoEquipamento
+  condicao      CondicaoEquipamento
+  localPadraoId String              @map("local_padrao_id") @db.Uuid
+  localAtualId  String              @map("local_atual_id") @db.Uuid
+  pessoaAtualId String?             @map("pessoa_atual_id") @db.Uuid
+  dataAquisicao DateTime?           @map("data_aquisicao") @db.Date
+  garantiaAte   DateTime?           @map("garantia_ate") @db.Date
+  observacoes   String?
+  ativo         Boolean             @default(true)
+  criadoEm      DateTime            @default(now()) @map("criado_em") @db.Timestamptz
+  atualizadoEm  DateTime            @updatedAt @map("atualizado_em") @db.Timestamptz
+
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  localPadrao Local     @relation("LocalPadrao", fields: [localPadraoId], references: [id])
+  localAtual  Local     @relation("LocalAtual", fields: [localAtualId], references: [id])
+  pessoaAtual Pessoa?   @relation(fields: [pessoaAtualId], references: [id])
+
+  reservas      Reserva[]
+  movimentacoes Movimentacao[]
+
+  @@index([situacao])
+  @@index([condicao])
+  @@index([categoriaId])
+  @@index([localAtualId])
+  @@map("equipamentos")
+}
+
+model Reserva {
+  id              String               @id @default(uuid()) @db.Uuid
+  equipamentoId   String               @map("equipamento_id") @db.Uuid
+  pessoaId        String               @map("pessoa_id") @db.Uuid
+  localDestinoId  String               @map("local_destino_id") @db.Uuid
+  inicio          DateTime             @db.Timestamptz
+  fimPrevisto     DateTime             @map("fim_previsto") @db.Timestamptz
+  fimReal         DateTime?            @map("fim_real") @db.Timestamptz
+  finalidade      String
+  situacao        SituacaoReserva
+  condicaoSaida   CondicaoEquipamento? @map("condicao_saida")
+  condicaoRetorno CondicaoEquipamento? @map("condicao_retorno")
+  observacoes     String?
+  criadoPor       String               @map("criado_por") @db.Uuid
+  criadoEm        DateTime             @default(now()) @map("criado_em") @db.Timestamptz
+
+  equipamento  Equipamento @relation(fields: [equipamentoId], references: [id])
+  pessoa       Pessoa      @relation(fields: [pessoaId], references: [id])
+  localDestino Local       @relation(fields: [localDestinoId], references: [id])
+  usuario      Usuario     @relation(fields: [criadoPor], references: [id])
+
+  movimentacoes Movimentacao[]
+
+  @@index([equipamentoId, inicio, fimPrevisto])
+  @@map("reservas")
+}
+
+model Movimentacao {
+  id             String               @id @default(uuid()) @db.Uuid
+  equipamentoId  String               @map("equipamento_id") @db.Uuid
+  reservaId      String?              @map("reserva_id") @db.Uuid
+  tipo           TipoMovimentacao
+  dataHora       DateTime             @map("data_hora") @db.Timestamptz
+  localOrigemId  String?              @map("local_origem_id") @db.Uuid
+  localDestinoId String?              @map("local_destino_id") @db.Uuid
+  pessoaId       String?              @map("pessoa_id") @db.Uuid
+  usuarioId      String               @map("usuario_id") @db.Uuid
+  situacaoApos   SituacaoEquipamento  @map("situacao_apos")
+  condicao       CondicaoEquipamento?
+  observacao     String?
+
+  equipamento  Equipamento @relation(fields: [equipamentoId], references: [id])
+  reserva      Reserva?    @relation(fields: [reservaId], references: [id])
+  localOrigem  Local?      @relation("LocalOrigem", fields: [localOrigemId], references: [id])
+  localDestino Local?      @relation("LocalDestino", fields: [localDestinoId], references: [id])
+  pessoa       Pessoa?     @relation(fields: [pessoaId], references: [id])
+  usuario      Usuario     @relation(fields: [usuarioId], references: [id])
+
+  @@index([equipamentoId, dataHora])
+  @@map("movimentacoes")
+}
