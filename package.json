@@ -1,0 +1,15 @@
+{
+  "name": "edutech-equipamentos",
+  "private": true,
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w api",
+    "dev:web": "npm run dev -w web",
+    "db:migrate": "npm run migrate -w api",
+    "db:seed": "npm run seed -w api",
+    "db:studio": "npm run studio -w api"
+  }
+}
