@@ -5,6 +5,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "migrate": "prisma migrate dev",
+    "seed": "prisma db seed",
+    "studio": "prisma studio",
     "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {
