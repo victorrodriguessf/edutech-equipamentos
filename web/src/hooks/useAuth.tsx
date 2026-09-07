@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const restoreSession = async () => {
       try {
-        const data = await apiFetch('/auth/refresh', { method: 'POST' });
+        const data = await apiFetch('/auth/refresh', { method: 'POST', body: '{}' });
         setAccessToken(data.accessToken);
         
         const user = await apiFetch('/auth/me');

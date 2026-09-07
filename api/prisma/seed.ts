@@ -52,9 +52,11 @@ async function main() {
   const hashAdmin = await bcrypt.hash(senhaAdmin, 10);
   const hashOperador = await bcrypt.hash(senhaOperador, 10);
 
+  const forcarSenha = process.env.SEED_FORCAR_SENHA === 'true';
+
   const admin = await prisma.usuario.upsert({
     where: { email: 'admin@edutech.senac.br' },
-    update: {},
+    update: forcarSenha ? { senhaHash: hashAdmin } : {},
     create: {
       nome: 'Administrador',
       email: 'admin@edutech.senac.br',
@@ -65,7 +67,7 @@ async function main() {
 
   const operador = await prisma.usuario.upsert({
     where: { email: 'operador@edutech.senac.br' },
-    update: {},
+    update: forcarSenha ? { senhaHash: hashOperador } : {},
     create: {
       nome: 'Operador',
       email: 'operador@edutech.senac.br',
