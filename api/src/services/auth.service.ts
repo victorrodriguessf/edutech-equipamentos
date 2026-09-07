@@ -56,4 +56,21 @@ export const authService = {
       throw naoAutorizado('Refresh token inválido ou expirado');
     }
   },
+
+  async me(id: string) {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id },
+    });
+
+    if (!usuario || !usuario.ativo) {
+      throw naoAutorizado('Não autorizado');
+    }
+
+    return {
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      papel: usuario.papel,
+    };
+  },
 };

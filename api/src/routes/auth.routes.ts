@@ -38,7 +38,8 @@ export async function authRoutes(app: FastifyInstance) {
       preHandler: [autenticar],
     },
     async (request, reply) => {
-      return reply.status(200).send(request.usuario);
+      const usuario = await authService.me(request.usuario.id);
+      return reply.status(200).send(usuario);
     }
   );
 }
