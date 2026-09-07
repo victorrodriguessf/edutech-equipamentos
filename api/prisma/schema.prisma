@@ -1,3 +1,6 @@
+// ATENÇÃO: O modelo de dados definitivo e suas regras de negócio estão definidos em ARQUITETURA.md na raiz do projeto.
+// Em caso de conflito, o ARQUITETURA.md prevalece. Sempre o consulte antes de propor alterações estruturais.
+
 generator client {
   provider = "prisma-client-js"
 }
