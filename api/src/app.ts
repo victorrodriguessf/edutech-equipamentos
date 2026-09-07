@@ -5,6 +5,8 @@ import { ZodError } from 'zod';
 import { ErroApp } from './lib/erros';
 import { env } from './env';
 import { healthRoutes } from './routes/health.routes';
+import { authRoutes } from './routes/auth.routes';
+import jwt from '@fastify/jwt';
 
 export const app = fastify();
 
@@ -15,7 +17,19 @@ app.register(cors, {
 
 app.register(cookie);
 
+app.register(jwt, {
+  secret: env.JWT_SECRET,
+});
+
+app.register(jwt, {
+  secret: env.JWT_REFRESH_SECRET,
+  namespace: 'refresh',
+  jwtVerify: 'refreshVerify',
+  jwtSign: 'refreshSign',
+});
+
 app.register(healthRoutes);
+app.register(authRoutes);
 
 app.setErrorHandler((error, request, reply) => {
   if (error instanceof ZodError) {
