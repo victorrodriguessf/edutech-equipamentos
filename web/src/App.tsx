@@ -1,8 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { AuthProvider } from './hooks/useAuth';
 import { Login } from './pages/Login';
-import { Inicio } from './pages/Inicio';
+import { Equipamentos } from './pages/Equipamentos';
+import { Pessoas } from './pages/Pessoas';
+import { Locais } from './pages/Locais';
+import { Categorias } from './pages/Categorias';
 import { RotaProtegida } from './components/RotaProtegida';
+import { Layout } from './components/Layout';
 
 export function App() {
   return (
@@ -10,15 +14,21 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          
           <Route 
-            path="/inicio" 
             element={
               <RotaProtegida>
-                <Inicio />
+                <Layout />
               </RotaProtegida>
-            } 
-          />
-          <Route path="*" element={<Navigate to="/inicio" replace />} />
+            }
+          >
+            <Route path="/equipamentos" element={<Equipamentos />} />
+            <Route path="/pessoas" element={<Pessoas />} />
+            <Route path="/locais" element={<Locais />} />
+            <Route path="/categorias" element={<Categorias />} />
+          </Route>
+          
+          <Route path="*" element={<Navigate to="/equipamentos" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
@@ -26,3 +36,4 @@ export function App() {
 }
 
 export default App;
+

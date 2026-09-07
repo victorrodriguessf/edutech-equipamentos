@@ -25,7 +25,7 @@ export function Login() {
     setCarregando(true);
     try {
       await login(email, senha);
-      navigate('/inicio');
+      navigate('/equipamentos');
     } catch (err: any) {
       setErro(err.message || 'Ocorreu um erro ao fazer login');
     } finally {
@@ -36,8 +36,8 @@ export function Login() {
   return (
     <div className="min-h-screen bg-papel flex items-center justify-center p-4">
       <div className="w-full max-w-[380px] bg-superficie rounded-[var(--radius-painel)] shadow-[var(--shadow-flutuante)] p-8">
-        <h1 className="text-[length:var(--text-secao)] font-[var(--text-secao--font-weight)] leading-[var(--text-secao--line-height)] text-tinta mb-6">
-          EduTech
+        <h1 className="text-titulo font-semibold text-tinta text-center mb-8 tracking-tight">
+          EduTech - Controle de Equipamentos
         </h1>
         
         <form onSubmit={handleSubmit} noValidate>
