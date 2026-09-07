@@ -102,6 +102,38 @@ O sistema estará acessível em http://localhost:5173.
 **No Workspace `web` (`-w web`):**
 - `dev`, `build`, `preview`: Inicialização e compilação do React via Vite.
 
+## Importação de Equipamentos (Planilha do EduTech)
+
+O sistema conta com um script de importação automatizada a partir da planilha oficial do EduTech. 
+
+**Comando de execução:**
+```bash
+npm run db:importar -w api -- "/caminho/absoluto/para/planilha.xlsx"
+```
+Para testar a importação sem alterar o banco de dados, adicione a flag `--simular` antes do caminho.
+
+**Formato esperado da planilha:**
+- Deve ser um arquivo `.xlsx`.
+- Os dados devem estar na aba chamada `Equipamentos`.
+- O cabeçalho deve estar na **linha 4** (as 3 primeiras linhas são ignoradas).
+- Colunas obrigatórias lidas pelo script: `Unidade de Origem`, `Unidade Destino`, `Dispositivo`, `Localização Atual`, `Chapa`, `Usuário ADMIN`, `Endereço MAC`, `Observação`.
+
+**Mapeamento de Locais:**
+O script mapeia a coluna `Localização Atual` estritamente para 8 locais autorizados no sistema:
+- `Suporte EDUTECH` ➔ `SUPORTE-EDUTECH`
+- `Biblioteca` ➔ `BIBLIOTECA`
+- `Diretoria Regional` ➔ `DIRETORIA-REGIONAL`
+- `Carreta Móvel TI e GESTÃO` ➔ `CARRETA-TI`
+- `Carreta Móvel MODA e BELEZA` ➔ `CARRETA-MODA`
+- `Mossoró` ➔ `MOSSORO`
+- `Centro` ➔ `CENTRO`
+- `Alecrim` ➔ `ALECRIM`
+
+*Caso a `Localização Atual` não corresponda a nenhum desses valores ou esteja em branco, a linha será rejeitada no relatório.*
+
+**Unidade Dona (`unidade_dona`)**
+A coluna `Unidade de Origem` da planilha representa a unidade que é **dona** (responsável patrimonial) do equipamento, e não necessariamente o local onde ele se encontra fisicamente. Esse valor é salvo na coluna `unidade_dona` no banco de dados. Caso venha vazio, é preenchido com a string `"Não informada"`.
+
 ## Documentação e Regras do Projeto
 
 Leia antes de fazer qualquer modificação:

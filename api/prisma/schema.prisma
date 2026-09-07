@@ -14,6 +14,7 @@ enum SituacaoEquipamento {
   EM_USO
   PARADO
   EMPRESTADO
+  EM_TRANSITO
   EM_MANUTENCAO
   BAIXADO
 }
@@ -39,7 +40,8 @@ enum TipoMovimentacao {
   CADASTRO
   SAIDA
   DEVOLUCAO
-  TRANSFERENCIA
+  TRANSFERENCIA_ENVIO
+  TRANSFERENCIA_RECEBIMENTO
   ENVIO_MANUTENCAO
   RETORNO_MANUTENCAO
   BAIXA
@@ -99,7 +101,7 @@ model Local {
   id      String  @id @default(uuid()) @db.Uuid
   codigo  String  @unique
   nome    String
-  unidade String?
+  unidade String
   tipo    String
   ativo   Boolean @default(true)
 
@@ -121,6 +123,10 @@ model Equipamento {
   marca         String?
   modelo        String?
   numeroSerie   String?             @map("numero_serie")
+  enderecoMac   String?             @map("endereco_mac")
+  emailConta    String?             @map("email_conta")
+  senhaContaCif String?             @map("senha_conta_cif")
+  unidadeDona   String              @map("unidade_dona")
   situacao      SituacaoEquipamento
   condicao      CondicaoEquipamento
   localPadraoId String              @map("local_padrao_id") @db.Uuid

@@ -40,15 +40,16 @@ Regras do monorepo:
 
 ## Regras que não podem ser quebradas
 
-1. `situacao` de equipamento nunca é escrita direto. Muda apenas como consequência de uma movimentação, dentro de transação.
-2. `movimentacoes` só recebe INSERT. Nunca UPDATE, nunca DELETE.
-3. Todo cadastro de equipamento grava uma movimentação `CADASTRO` na mesma transação.
-4. `tombo` é imutável após o cadastro.
-5. Situação e condição são campos separados e independentes. Não unificar.
-6. Exclusão é lógica (`ativo = false`), nunca DELETE físico.
-7. Todo timestamp é `timestamptz` em UTC. Conversão para America/Fortaleza só na exibição.
-8. Toda rota valida a entrada com Zod. Nenhuma rota confia no corpo recebido.
-9. Nenhuma credencial no código ou no repositório. Sempre `.env`.
+1. Nunca apagar tabela, registro ou arquivo que não esteja explicitamente autorizado na tarefa. Em caso de necessidade, parar e perguntar.
+2. `situacao` de equipamento nunca é escrita direto. Muda apenas como consequência de uma movimentação, dentro de transação.
+3. `movimentacoes` só recebe INSERT. Nunca UPDATE, nunca DELETE.
+4. Todo cadastro de equipamento grava uma movimentação `CADASTRO` na mesma transação.
+5. `tombo` é imutável após o cadastro.
+6. Situação e condição são campos separados e independentes. Não unificar.
+7. Exclusão é lógica (`ativo = false`), nunca DELETE físico.
+8. Todo timestamp é `timestamptz` em UTC. Conversão para America/Fortaleza só na exibição.
+9. Toda rota valida a entrada com Zod. Nenhuma rota confia no corpo recebido.
+10. Nenhuma credencial no código ou no repositório. Sempre `.env`.
 
 ## Convenções
 
