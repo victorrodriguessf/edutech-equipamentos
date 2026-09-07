@@ -85,10 +85,12 @@ Regra: rota não contém regra de negócio. Rota valida entrada, chama service, 
 ### Enums
 
 ```
-SituacaoEquipamento  : EM_USO | PARADO | EMPRESTADO | EM_MANUTENCAO | BAIXADO
+SituacaoEquipamento  : EM_USO | PARADO | EMPRESTADO | EM_TRANSITO | EM_MANUTENCAO | BAIXADO
 CondicaoEquipamento  : NOVO | BOM | REGULAR | PRECISA_MANUTENCAO | AVARIADO | INSERVIVEL
 SituacaoReserva      : AGENDADA | EM_ANDAMENTO | DEVOLVIDA | ATRASADA | CANCELADA
-TipoMovimentacao     : CADASTRO | SAIDA | DEVOLUCAO | TRANSFERENCIA | ENVIO_MANUTENCAO | RETORNO_MANUTENCAO | BAIXA
+TipoMovimentacao     : CADASTRO | SAIDA | DEVOLUCAO | TRANSFERENCIA_ENVIO |
+                       TRANSFERENCIA_RECEBIMENTO | ENVIO_MANUTENCAO |
+                       RETORNO_MANUTENCAO | BAIXA
 PapelUsuario         : ADMIN | OPERADOR
 ```
 
@@ -99,6 +101,7 @@ PapelUsuario         : ADMIN | OPERADOR
 | `EM_USO` | Instalado e operando em local fixo |
 | `PARADO` | Funcional, guardado, sem uso no momento |
 | `EMPRESTADO` | Com uma pessoa, fora do local padrão |
+| `EM_TRANSITO` | Enviado para outra unidade, ainda não recebido no destino |
 | `EM_MANUTENCAO` | Fisicamente fora, em conserto |
 | `BAIXADO` | Descartado, doado, furtado ou sem conserto |
 
@@ -159,19 +162,31 @@ Carga inicial obrigatória no seed:
 | `VRS` | Óculos VR |
 | `PRJ` | Projetor |
 | `IMP` | Impressora |
+| `I3D` | Impressora 3D |
+| `CAM` | Câmera e vídeo |
+| `DRN` | Drone |
+| `STR` | Streaming e casa conectada |
 | `PER` | Periférico |
 | `RDE` | Rede e energia |
 | `DIV` | Outros |
 
+Definidas a partir do inventário real de 161 equipamentos. `CAM` inclui tripé e
+acessórios de captura. `STR` cobre Chromecast e assistentes de voz.
+
 **`locais`**
 ```
 id                uuid PK
-codigo            text unique          (LAB01, DEPOSITO, SALA-A2)
+codigo            text unique          (SUP-EDUTECH, BIBLIOTECA, CARRETA-TI)
 nome              text
-unidade           text null
-tipo              text                 (laboratorio, deposito, sala, externo)
+unidade           text NOT NULL        (Alecrim, Centro, Zona Norte, Zona Sul,
+                                        Barreira Roxa, Mossoró, Caicó, Assú)
+tipo              text                 (laboratorio, deposito, sala, carreta, externo)
 ativo             boolean default true
 ```
+
+O acervo é distribuído por 8 unidades do Senac RN, e há dois locais itinerantes
+(Carreta Móvel TI e GESTÃO, Carreta Móvel MODA e BELEZA). Por isso `unidade` é
+obrigatória.
 
 **`equipamentos`**
 ```
@@ -183,6 +198,9 @@ categoria_id      uuid FK -> categorias NOT NULL
 marca             text null
 modelo            text null
 numero_serie      text null
+endereco_mac      text null
+email_conta       text null                (conta vinculada ao aparelho)
+senha_conta_cif   text null                (senha cifrada, nunca em texto puro)
 situacao          SituacaoEquipamento NOT NULL
 condicao          CondicaoEquipamento NOT NULL
 local_padrao_id   uuid FK -> locais NOT NULL
@@ -212,6 +230,15 @@ condicao_retorno    CondicaoEquipamento null
 observacoes         text null
 criado_por          uuid FK -> usuarios
 criado_em           timestamptz
+```
+
+**`credenciais_reveladas`** — auditoria, apenas INSERT
+```
+id                uuid PK
+equipamento_id    uuid FK -> equipamentos
+usuario_id        uuid FK -> usuarios
+data_hora         timestamptz
+ip                text null
 ```
 
 **`movimentacoes`** — log imutável, apenas INSERT
@@ -290,20 +317,55 @@ Criar equipamento sem gravar essa movimentação é bug. O histórico de um item
 
 Tela própria, restrita ao papel `ADMIN`. Prefixo com exatamente três letras maiúsculas, único, imutável após criação. Categoria com equipamento vinculado não pode ser excluída, apenas desativada.
 
-## 7. Regras de negócio invioláveis
+## 7. Credenciais de conta de aparelho
+
+Parte do acervo (óculos VR, tablets) tem conta de fabricante vinculada ao
+aparelho. O técnico precisa da senha para operar o equipamento, então ela é
+armazenada de forma reversível, não hasheada.
+
+### Como é armazenada
+
+- Cifra **AES-256-GCM**, com IV aleatório por registro e tag de autenticação.
+- Chave em variável de ambiente `CRIPTO_CHAVE`, 32 bytes em base64, **nunca no
+  banco e nunca no repositório**.
+- A chave entra na rotina de backup, guardada separada do dump do banco. Perder
+  a chave significa perder todas as senhas armazenadas.
+
+### Como é acessada
+
+1. `senha_conta_cif` **nunca** é retornada em listagem, busca, exportação ou na
+   ficha do equipamento. Nenhum `select` amplo pode incluí-la.
+2. A senha só sai por um endpoint dedicado, `GET /equipamentos/:id/credencial`,
+   restrito ao papel `ADMIN`.
+3. Toda revelação grava uma linha em `credenciais_reveladas` com usuário, data,
+   hora e IP. A gravação da auditoria e a resposta ficam na mesma transação: se
+   a auditoria falhar, a senha não é devolvida.
+4. Na interface, a senha aparece mascarada com ação explícita de revelar, e volta
+   a mascarar ao sair da tela. Nunca é pré-carregada.
+5. `email_conta` não é segredo e circula normalmente, inclusive na busca.
+
+### Fora de escopo aqui
+
+Rotação automática de senha, geração de senha, integração com gerenciador
+externo. Se as senhas passarem a ser individuais por aparelho, este desenho
+continua válido sem alteração.
+
+## 8. Regras de negócio invioláveis
 
 1. **Situação do equipamento é sempre derivada de uma movimentação.** Nenhum endpoint permite alterar `situacao` diretamente. Alterar situação sem gravar movimentação é bug.
 2. **Condição pode ser alterada por avaliação direta**, mas toda alteração de condição gera movimentação de registro com a condição anterior na observação.
 3. **`movimentacoes` nunca sofre UPDATE nem DELETE.** Correção se faz com nova movimentação.
 4. **Toda operação que altera equipamento e grava movimentação roda dentro de uma transação.** As duas coisas acontecem juntas ou nenhuma acontece.
 5. **Tombo interno é imutável após o cadastro.**
-6. **Equipamento com situação `EM_MANUTENCAO` ou `BAIXADO` não pode ser reservado nem emprestado.**
+6. **Equipamento com situação `EM_TRANSITO`, `EM_MANUTENCAO` ou `BAIXADO` não pode ser reservado nem emprestado.**
 7. **Devolução exige informar a condição de retorno.** Se a condição retornar pior que a de saída, o sistema sugere registrar `PRECISA_MANUTENCAO`.
 8. **Atraso é calculado, nunca marcado manualmente:** `fim_previsto < now() AND fim_real IS NULL`.
 9. **Exclusão é lógica.** Nada é apagado do banco, usa-se `ativo = false` ou situação `BAIXADO`.
 10. **Todo timestamp é `timestamptz`, gravado em UTC.** Conversão para America/Fortaleza acontece só na exibição.
+11. **Transferência entre unidades tem dois passos.** `TRANSFERENCIA_ENVIO` coloca o equipamento em `EM_TRANSITO` e registra o local de destino. `TRANSFERENCIA_RECEBIMENTO` confirma a chegada, atualiza `local_atual_id` e devolve a situação anterior. Equipamento não muda de local sem confirmação de recebimento.
+12. **Senha de conta de aparelho nunca trafega fora do endpoint dedicado**, nunca é logada, e nunca aparece em mensagem de erro.
 
-## 8. Endpoints da API
+## 9. Endpoints da API
 
 ```
 POST   /auth/login
@@ -320,9 +382,11 @@ GET    /equipamentos/proximo-tombo    query: categoriaId
 POST   /equipamentos/:id/saida        movimentação SAIDA
 POST   /equipamentos/:id/devolucao    movimentação DEVOLUCAO
 POST   /equipamentos/:id/manutencao   envio ou retorno
-POST   /equipamentos/:id/transferencia
+POST   /equipamentos/:id/transferencia/envio
+POST   /equipamentos/:id/transferencia/recebimento
 POST   /equipamentos/:id/condicao     reavaliação de estado físico
 POST   /equipamentos/:id/baixa
+GET    /equipamentos/:id/credencial   revela a senha, apenas ADMIN, auditado
 
 GET    /reservas                      filtros: periodo, situacao, equipamento, pessoa
 POST   /reservas
@@ -339,7 +403,7 @@ GET    /exportar/equipamentos.csv
 
 Busca por `:tombo` no GET de equipamento, porque é o que o QR Code e o operador usam.
 
-## 9. Convenções
+## 10. Convenções
 
 - Banco em `snake_case`, código TypeScript em `camelCase`, mapeamento via `@map` do Prisma.
 - Validação de entrada com Zod em todas as rotas. Nenhuma rota confia no corpo recebido.
@@ -348,7 +412,7 @@ Busca por `:tombo` no GET de equipamento, porque é o que o QR Code e o operador
 - Mensagens de interface em português.
 - Commits pequenos, um por entrega.
 
-## 10. Entregas
+## 11. Entregas
 
 ### Entrega 0 — Fundação
 
@@ -368,7 +432,9 @@ Busca por `:tombo` no GET de equipamento, porque é o que o QR Code e o operador
 - Geração híbrida do tombo com validação de formato, unicidade e aviso de salto
 - Movimentação `CADASTRO` gravada em transação
 - Front: login, listagem com busca e filtros, formulário de cadastro, ficha do equipamento
-- Importação do inventário real por CSV
+- Campos `endereco_mac` e `email_conta` no cadastro e na ficha
+- Importação do inventário real: 161 equipamentos, 8 unidades, tratando chapa
+  ausente (13 itens), chapa duplicada e categoria inferida pelo nome do dispositivo
 
 **Critério de conclusão:** cadastrar um equipamento pela interface com tombo sugerido automaticamente, localizá-lo na busca e abrir a ficha com a movimentação de cadastro no histórico.
 
@@ -377,7 +443,9 @@ Busca por `:tombo` no GET de equipamento, porque é o que o QR Code e o operador
 - Endpoints de saída e devolução, com transação e gravação em `movimentacoes`
 - Situação, local e pessoa atual atualizados como consequência da movimentação
 - Fluxo de manutenção: envio e retorno
-- Transferência entre locais
+- Transferência entre unidades em dois passos, com situação `EM_TRANSITO`
+- Armazenamento cifrado da senha de conta, endpoint de revelação restrito a
+  ADMIN e tabela de auditoria
 - Reavaliação de condição com registro do estado anterior
 - Front: ações na ficha do equipamento e histórico de movimentações
 
@@ -414,7 +482,7 @@ Busca por `:tombo` no GET de equipamento, porque é o que o QR Code e o operador
 
 **Critério de conclusão:** outra pessoa sobe o projeto seguindo apenas o README.
 
-## 11. Pontos que exigem revisão manual
+## 12. Pontos que exigem revisão manual
 
 Código gerado por IA nestes trechos precisa ser lido linha a linha antes do commit:
 
@@ -425,12 +493,14 @@ Código gerado por IA nestes trechos precisa ser lido linha a linha antes do com
 - Geração e renovação de token, e o tratamento de expiração
 - Transações que alteram equipamento e gravam movimentação
 - Qualquer trecho que escreva nos campos `situacao` ou `tombo`
+- Cifra e decifra da senha de conta, e o endpoint de revelação
+- Todo `select` de equipamento, conferindo que `senha_conta_cif` não vaza
 
 Cenários de teste obrigatórios para sobreposição de reserva: sobreposição total, parcial no início, parcial no fim, período contido dentro de outro, e períodos adjacentes que não se sobrepõem.
 
 Cenários obrigatórios para o tombo: sugestão em categoria vazia, sugestão em categoria com itens, tombo duplicado, tombo com formato inválido, prefixo inexistente, e salto de numeração.
 
-## 12. Fora de escopo
+## 13. Fora de escopo
 
 Não implementar sem decisão explícita:
 
@@ -440,6 +510,8 @@ Não implementar sem decisão explícita:
 - Cadastro de acessórios como itens independentes
 - Controle de licenças de software
 - Integração com o sistema de patrimônio do Senac
+- Rotação ou geração automática de senha de conta de aparelho
+- Controle da rede acadêmica por unidade (colunas descartadas na importação)
 - Notificações automáticas por e-mail ou Teams
 - Aplicativo nativo
 
