@@ -10,6 +10,8 @@ Sistema interno de gestão de equipamentos do Senac Labs EduTech. Controla onde 
 
 Antes de qualquer alteração de código, leia **`ARQUITETURA.md`** na raiz. Ele define modelo de dados, regras de negócio, endpoints e escopo.
 
+Antes de qualquer alteração de front-end, leia também **`DESIGN.md`**. Ele define tokens, tipografia, componentes e o que não pode aparecer na interface.
+
 Em caso de conflito entre este arquivo e `ARQUITETURA.md`, vale `ARQUITETURA.md`.
 
 ## Stack fixa

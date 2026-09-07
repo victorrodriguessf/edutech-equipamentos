@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+access-control-allow-origin: *
+access-control-allow-credentials: true
+content-type: application/json; charset=utf-8
+set-cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlmZWNmOWUwLWE3MjQtNGE1ZC1hNGZmLTAzMTYyZWYwODcyNiIsImlhdCI6MTc4ODc5NjUwMywiZXhwIjoxNzg5NDAxMzAzfQ.XU3UHlAZRCV91O_FSKTVH3qA_IKRi3pFuAU8-vcEW1w; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax
+content-length: 257
+Date: Mon, 07 Sep 2026 15:55:03 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+

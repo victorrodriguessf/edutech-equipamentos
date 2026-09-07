@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-papel: #F6F7F8;
+  --color-superficie: #FFFFFF;
+  --color-tinta: #14181D;
+  --color-tinta-fraca: #5B6672;
+  --color-linha: #DFE4E9;
+  --color-azul: #12467E;
+  --color-azul-claro: #EAF1F9;
+
+  --text-titulo: 31px;
+  --text-titulo--line-height: 1.2;
+  --text-titulo--font-weight: 600;
+
+  --text-secao: 25px;
+  --text-secao--line-height: 1.2;
+  --text-secao--font-weight: 600;
+
+  --text-destaque: 20px;
+  --text-destaque--line-height: 1.2;
+  --text-destaque--font-weight: 500;
+
+  --text-corpo: 16px;
+  --text-corpo--line-height: 1.5;
+  --text-corpo--font-weight: 400;
+
+  --text-apoio: 14px;
+  --text-apoio--line-height: 1.5;
+  --text-apoio--font-weight: 400;
+
+  --text-nota: 13px;
+  --text-nota--line-height: 1.5;
+  --text-nota--font-weight: 400;
+
+  --text-tombo: 15px;
+  --text-tombo--font-family: var(--font-mono);
+  --text-tombo--font-weight: 500;
+  --text-tombo--letter-spacing: 0.02em;
+  --text-tombo--line-height: 1.5;
+
+  --radius-controle: 6px;
+  --radius-painel: 8px;
+
+  --shadow-flutuante: 0 1px 2px rgba(20, 24, 29, 0.06);
+
+  /* Situação */
+  --color-status-em-uso-bg: #E3F0E8;
+  --color-status-em-uso-text: #1C6B3C;
+  --color-status-parado-bg: #EDEFF2;
+  --color-status-parado-text: #4A5560;
+  --color-status-emprestado-bg: #FDF0DA;
+  --color-status-emprestado-text: #8A5A00;
+  --color-status-manutencao-bg: #FBE4DC;
+  --color-status-manutencao-text: #9A3412;
+  --color-status-baixado-bg: #E5E7EA;
+  --color-status-baixado-text: #6B7280;
+
+  /* Condição */
+  --color-condicao-novo: #1C6B3C;
+  --color-condicao-bom: #3F8F5F;
+  --color-condicao-regular: #B78103;
+  --color-condicao-manutencao: #C2410C;
+  --color-condicao-avariado: #B02A1E;
+  --color-condicao-inservivel: #6B7280;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-papel);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
