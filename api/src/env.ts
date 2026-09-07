@@ -8,7 +8,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1),
   JWT_REFRESH_SECRET: z.string().min(1),
   PORT: z.coerce.number().default(3333),
-  CORS_ORIGIN: z.string().default('*'),
+  CORS_ORIGIN: z.string().refine(val => val !== '*', {
+    message: 'Wildcard (*) não é permitido no CORS_ORIGIN devido a incompatibilidade com credentials: true',
+  }),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
